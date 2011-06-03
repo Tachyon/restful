@@ -21,18 +21,25 @@ function restful_ws_route($segments) {
 	elgg_set_viewtype($viewtype);
 
 	$info = restful_get_ws_object($segments);
-
-	$params = restful_get_params();
+	
+	$params = restful_get_params($segments);
 
 	$results = call_user_func($info->callback, $params);
-	
+	echo var_dump($results);
+}
+
+function restful_get_params($input) {
+	$param[0] = array_shift($input);
+	$param[1] = array_shift($input);
+	$param[1] = substr($param[1], 1, strlen($param[1]));
+	return $param;
 }
 
 function restful_get_ws_object($segments) {
 	global $CONFIG;
 
-	$method = $_SERVER['METHOD'];
-
+	$method = $_SERVER['REQUEST_METHOD'];
+	
 	$type = array_shift($segments);
 
 	if (!isset($CONFIG->ws[$method][$type])) {
@@ -58,7 +65,7 @@ function elgg_register_ws_method($address, $method, $callback) {
 	}
 	
 	$first = strpos($address, '/');
-	$first = $first ? $first : strlen($address);
+	$first = $first ? substr ( $address , 0, $first ) : $address;
 
 	if (!isset($CONFIG->ws)) {
 		$CONFIG->ws = array(
@@ -83,14 +90,22 @@ function elgg_register_ws_method($address, $method, $callback) {
 }
 
 function restful_get_latest_wire_posts($params) {
-	extract($params);
-
+	$username = $params[1];
 	$user = get_user_by_username($username);
+	
+	if(!$user) {
+		$posts['success']= false;
+		$posts['error'] = "Invalid Username";
+		return $post;
+	}
+	
 	$posts = elgg_get_entities(array(
 		'type' => 'object',
 		'subtype' => 'thewire',
 		'owner_guid' => $user->getGUID(),
 	));
-
-	return $posts;
+	$post['success']= true;
+	$post['wire']= $posts->attributes;
+	
+	return $post;
 }
